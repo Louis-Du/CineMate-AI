@@ -1,0 +1,5 @@
+{
+  "name": "CineMate AI",
+  "description": "An advanced AI-powered movie recommender assistant that learns your tastes and provides curated suggestions with a cinematic interface.",
+  "requestFramePermissions": []
+}
