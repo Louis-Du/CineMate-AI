@@ -30,6 +30,29 @@ const App: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Helper to recursively remove posterUrl from data to save tokens
+  const cleanDataForHistory = (data: any): any => {
+    if (!data) return data;
+    
+    // Create a shallow copy to avoid mutating state directly
+    if (Array.isArray(data)) {
+        return data.map(item => cleanDataForHistory(item));
+    }
+    
+    if (typeof data === 'object') {
+        const copy = { ...data };
+        if ('posterUrl' in copy) {
+            copy.posterUrl = ""; 
+        }
+        if ('relatedMovies' in copy && Array.isArray(copy.relatedMovies)) {
+            copy.relatedMovies = copy.relatedMovies.map((rel: any) => cleanDataForHistory(rel));
+        }
+        return copy;
+    }
+    
+    return data;
+  };
+
   // Handlers
   const handleSendMessage = async (text: string = inputText) => {
     if (!text.trim() || isLoading) return;
@@ -47,37 +70,12 @@ const App: React.FC = () => {
 
     try {
       // Prepare history for API
-      // CRITICAL FIX: Sanitize history to remove heavy base64 strings (posterUrls)
-      // otherwise we hit token limits immediately.
+      // CRITICAL: Sanitize history to remove heavy base64 strings (posterUrls)
       const history = messages.map(m => {
-        // Deep copy the content to avoid mutating state
         const contentCopy = JSON.parse(JSON.stringify(m.content));
-        
-        // Remove posterUrl from data if present
         if (contentCopy.data) {
-            if (Array.isArray(contentCopy.data)) {
-                // Handle Movie[] or NewsItem[]
-                contentCopy.data = contentCopy.data.map((item: any) => {
-                    if (item && typeof item === 'object' && 'posterUrl' in item) {
-                        item.posterUrl = ""; // Remove base64 data to save tokens
-                    }
-                    if (item && typeof item === 'object' && 'relatedMovies' in item) {
-                        // Remove nested posters too
-                        item.relatedMovies = item.relatedMovies.map((rel: any) => ({...rel, posterUrl: ""}));
-                    }
-                    return item;
-                });
-            } else if (typeof contentCopy.data === 'object') {
-                // Handle single Movie object
-                if ('posterUrl' in contentCopy.data) {
-                    contentCopy.data.posterUrl = "";
-                }
-                if ('relatedMovies' in contentCopy.data && Array.isArray(contentCopy.data.relatedMovies)) {
-                    contentCopy.data.relatedMovies = contentCopy.data.relatedMovies.map((rel: any) => ({...rel, posterUrl: ""}));
-                }
-            }
+            contentCopy.data = cleanDataForHistory(contentCopy.data);
         }
-
         return {
             role: m.role === MessageRole.USER ? 'user' : 'model',
             parts: [{ text: JSON.stringify(contentCopy) }]
@@ -102,9 +100,6 @@ const App: React.FC = () => {
 
   const handleOpenDetails = async (movie: Movie) => {
     // If the movie object already has description, open immediately.
-    // NOTE: We do not check for relatedMovies here, if they are missing but desc exists,
-    // we assume it was a complete object or user is ok with cached data.
-    // If you want to force refresh for related movies, remove this check.
     if (movie.description && movie.relatedMovies) {
         setSelectedMovie(movie);
         setDetailsModalOpen(true);
@@ -114,7 +109,6 @@ const App: React.FC = () => {
     // Otherwise, simulate asking AI for details silently
     setIsLoading(true);
     try {
-        // Enforce strong requirement for YouTube URL format
         const query = `Realiza una búsqueda exhaustiva para encontrar los detalles de la película: ${movie.title} (${movie.year}).
         Necesito: cast, rating, descripción y OBLIGATORIAMENTE un enlace de YouTube al TRAILER oficial.
         
@@ -128,15 +122,11 @@ const App: React.FC = () => {
         IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido que siga el esquema 'details'.
         NO incluyas texto conversacional ni listas en markdown fuera del JSON.`;
 
-        // We use a simplified history for details fetch as well
+        // Simplified history for details fetch
         const contextHistory = messages.map(m => {
              const contentCopy = JSON.parse(JSON.stringify(m.content));
              if (contentCopy.data) {
-                if (Array.isArray(contentCopy.data)) {
-                    contentCopy.data.forEach((item: any) => { if(item.posterUrl) item.posterUrl = ""; });
-                } else if (contentCopy.data.posterUrl) {
-                    contentCopy.data.posterUrl = "";
-                }
+                contentCopy.data = cleanDataForHistory(contentCopy.data);
              }
              return {
                  role: m.role === MessageRole.USER ? 'user' : 'model',
@@ -150,9 +140,7 @@ const App: React.FC = () => {
              setSelectedMovie(response.data as Movie);
              setDetailsModalOpen(true);
         } else {
-             // Fallback if AI answers with text
              console.warn("AI returned text instead of DETAILS JSON:", response.message);
-             // Attempt to recover partially or just show what we have
              alert("No se pudieron cargar todos los detalles automáticos. Intenta abrir de nuevo.");
         }
     } catch (e) {

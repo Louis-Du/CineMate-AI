@@ -23,6 +23,17 @@ const MovieDetailModal: React.FC<Props> = ({ movie, isOpen, onClose, onSelectRel
   const fallbackTrailerUrl = `https://www.youtube.com/results?search_query=Trailer+${encodeURIComponent(movie.title + " " + movie.year)}`;
   const finalTrailerLink = movie.trailerUrl || fallbackTrailerUrl;
 
+  // External Search Links
+  // Replace spaces with '+' for search query parameters as requested
+  const searchTitle = encodeURIComponent(movie.title).replace(/%20/g, '+');
+  
+  const externalLinks = [
+    { name: "Cuevana.is", url: `https://www.cuevana.is/search?q=${searchTitle}` },
+    { name: "Cuevana Pro", url: `https://cuevana.pro/explorar?s=${searchTitle}` },
+    { name: "PelisPlus HD", url: `https://ww5.pelisplushd.to/search?s=${searchTitle}` },
+    { name: "RepelisPlus", url: `https://repelisplus.hair/buscar/${searchTitle}` },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -32,7 +43,7 @@ const MovieDetailModal: React.FC<Props> = ({ movie, isOpen, onClose, onSelectRel
       />
       
       {/* Modal Content */}
-      <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-cinema-800 border border-cinema-700 text-left shadow-2xl shadow-black transition-all animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-cinema-800 border border-cinema-700 text-left shadow-2xl shadow-black transition-all flex flex-col max-h-[90vh]">
         
         {/* Scrollable Container */}
         <div className="overflow-y-auto scrollbar-hide custom-scrollbar">
@@ -102,7 +113,7 @@ const MovieDetailModal: React.FC<Props> = ({ movie, isOpen, onClose, onSelectRel
 
                         {movie.streaming && movie.streaming.length > 0 && (
                             <div className="mb-4">
-                                <h4 className="text-xs font-bold text-cinema-accent uppercase mb-2 tracking-wider">Disponible en</h4>
+                                <h4 className="text-xs font-bold text-cinema-accent uppercase mb-2 tracking-wider">Disponible en (Legal)</h4>
                                 <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                                     {movie.streaming.map((platform, i) => (
                                         <span key={i} className="px-2 py-1 rounded-md bg-cinema-700/50 text-xs text-white border border-white/10">
@@ -112,9 +123,29 @@ const MovieDetailModal: React.FC<Props> = ({ movie, isOpen, onClose, onSelectRel
                                 </div>
                             </div>
                         )}
+
+                        {/* External Search Section */}
+                        <div className="mb-6">
+                            <h4 className="text-xs font-bold text-cinema-accent uppercase mb-2 tracking-wider">Buscar en la Web</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                {externalLinks.map((link, i) => (
+                                    <a 
+                                        key={i}
+                                        href={link.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-cinema-900 border border-cinema-700 text-xs text-gray-300 hover:text-white hover:border-cinema-accent hover:bg-cinema-800 transition-all"
+                                    >
+                                        <span>🔍</span>
+                                        {link.name}
+                                        <span className="text-[10px] opacity-50">↗</span>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
                         
                         {/* Trailer Section - External Link Only */}
-                        <div className="mt-6">
+                        <div className="mt-6 border-t border-cinema-700/50 pt-6">
                             <h4 className="text-xs font-bold text-cinema-accent uppercase mb-2 tracking-wider">Trailer Oficial</h4>
                             
                             <div className="mt-2 p-4 rounded-lg bg-cinema-900/50 border border-cinema-700 text-center">

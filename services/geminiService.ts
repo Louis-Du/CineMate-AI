@@ -61,11 +61,18 @@ export const sendMessageToGemini = async (
     const ai = getClient();
     
     // Config: Enable Google Search tool for grounding (news/details), but NOT for posters anymore.
+    // Add Safety Settings to prevent blocking of movie content (violence, adult themes in metadata)
     const chat = ai.chats.create({
       model: 'gemini-2.5-flash',
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        tools: [{googleSearch: {}}], 
+        tools: [{googleSearch: {}}],
+        safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+        ],
       },
       history: chatHistory
     });
@@ -74,9 +81,21 @@ export const sendMessageToGemini = async (
         message: userMessage
     });
 
+    // Improved text extraction
     let responseText = result.text;
+    
+    // Fallback: If text getter is empty (sometimes happens with safety filters or tool-only steps),
+    // check candidates manually.
+    if (!responseText && result.candidates && result.candidates.length > 0) {
+        // Try to join all text parts
+        const parts = result.candidates[0].content?.parts || [];
+        responseText = parts.map(p => p.text || '').join('');
+    }
+
     if (!responseText) {
-      throw new Error("Empty response from Gemini");
+      // Log the full result to debug why it's empty
+      console.error("Empty response from Gemini. Result object:", JSON.stringify(result, null, 2));
+      throw new Error("Empty response from Gemini (Check console for details)");
     }
 
     // Robust JSON Extraction Strategy
@@ -141,7 +160,7 @@ export const sendMessageToGemini = async (
     console.error("Gemini API Error:", error);
     return {
       type: ResponseType.TEXT,
-      message: "Lo siento, hubo un error conectando con el servicio de IA. Por favor intenta de nuevo.",
+      message: "Lo siento, hubo un error conectando con el servicio de IA. Intenta reformular tu solicitud.",
     };
   }
 };
