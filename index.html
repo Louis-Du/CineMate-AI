@@ -30,30 +30,25 @@
         background-color: #0f172a;
         color: #e2e8f0;
       }
-      
       .glass-panel {
         background: rgba(30, 41, 59, 0.7);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
-
       /* Custom Scrollbar Styles */
       ::-webkit-scrollbar {
         width: 10px;
         height: 10px;
       }
-      
       ::-webkit-scrollbar-track {
         background: #0f172a; 
         border-left: 1px solid #1e293b;
       }
-      
       ::-webkit-scrollbar-thumb {
         background: #334155; 
         border-radius: 5px;
         border: 2px solid #0f172a;
       }
-      
       ::-webkit-scrollbar-thumb:hover {
         background: #f59e0b; /* cinema-accent */
       }
@@ -63,8 +58,8 @@
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+    /* Atención: NO incluir "@google/genai" aquí para evitar que el cliente intente cargar GenAI */
   }
 }
 </script>
